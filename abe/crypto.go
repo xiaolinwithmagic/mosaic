@@ -64,6 +64,7 @@ func NewRandomUserkey(user string, attr string, authprv *AuthPrv) (userattrs *Us
 	for _, attr := range attrs {
 		huser := org.Crv.HashToGroup(user, "G2")
 		hattr := org.Crv.HashToGroup(attr, "G2")
+
 		t := org.Crv.NewRandomExp()
 
 		userkey := &Userkey{
@@ -120,6 +121,50 @@ func Encrypt(secret Point, policy string, authpubs *AuthPubs) (ct *Ciphertext) {
 	curve := org.Crv
 
 	ap := buildAccessPolicy(policy)
+	s := curve.NewRandomSecret(len(ap.Vars), false) // 随机数，随机数...
+	w := curve.NewRandomSecret(len(ap.Vars), true)  // 0,随机数...
+	sh_s := computeShares(s, ap.M)
+	sh_w := computeShares(w, ap.M)
+	log.Debug("s0 secret %s", s[0])
+	for attr, rows := range ap.Row {
+		log.Debug("shares of secret s0 for %s", attr)
+		for _, i := range rows {
+			log.Debug("share on row %d: %s", i, sh_s[i])
+		}
+	}
+
+	S0 := curve.Pow(org.E, s[0])
+	C0 := curve.Mul(secret, S0)
+
+	C := make(map[string][][]Point)
+	for attr, rows := range ap.Row {
+		auth := strings.SplitN(attr, "@", 2)[1]
+		authpub := authpubs.AuthPub[auth]
+		hattr := curve.HashToGroup(attr, "G2")
+
+		C[attr] = make([][]Point, len(rows))
+		for k, i := range rows {
+			tx := curve.NewRandomExp()
+
+			C[attr][k] = make([]Point, 4)
+			C[attr][k][0] = curve.Pow2(org.E, sh_s[i], authpub.Ealpha, tx)
+			C[attr][k][1] = curve.Inv(curve.Pow(org.G1, tx))
+			C[attr][k][2] = curve.Pow2(org.G1, sh_w[i], authpub.G1y, tx)
+			C[attr][k][3] = curve.Pow(hattr, tx)
+		}
+	}
+
+	ct = &Ciphertext{
+		Org: org, Policy: policy, C0: C0, C: C}
+	return
+}
+
+// this is a test
+func Encrypt1(secret Point, policy string, authpubs *AuthPubs) (ct *Ciphertext) {
+	org := GetOrgFromAuthPubs(authpubs)
+	curve := org.Crv
+
+	ap := buildAccessPolicy(policy)
 	s := curve.NewRandomSecret(len(ap.Vars), false)
 	w := curve.NewRandomSecret(len(ap.Vars), true)
 	sh_s := computeShares(s, ap.M)
@@ -147,7 +192,8 @@ func Encrypt(secret Point, policy string, authpubs *AuthPubs) (ct *Ciphertext) {
 
 			C[attr][k] = make([]Point, 4)
 			C[attr][k][0] = curve.Pow2(org.E, sh_s[i], authpub.Ealpha, tx)
-			C[attr][k][1] = curve.Inv(curve.Pow(org.G1, tx))
+			C[attr][k][1] = curve.Pow(org.G1, sh_s[i]) //cj^'
+			C[attr][k][1] = curve.Pow(org.G1, sh_s[i]) //ci
 			C[attr][k][2] = curve.Pow2(org.G1, sh_w[i], authpub.G1y, tx)
 			C[attr][k][3] = curve.Pow(hattr, tx)
 		}
@@ -195,11 +241,75 @@ func Decrypt(ct *Ciphertext, userattrs *UserAttrs) (secret Point) {
 	return
 }
 
+func Decrypt1(ct *Ciphertext, userattrs *UserAttrs) (secret Point) {
+	org := ct.Org
+	curve := org.Crv
+	huser := curve.HashToGroup(userattrs.User, "G2")
+
+	S0 := curve.UnitOnGroup("GT")
+	for attr, cs := range userattrs.Coeff {
+		for k, c := range cs {
+			if c != 0 {
+				userkey := userattrs.Userkey[attr]
+				tmp := curve.ProdPair(
+					[]Point{ct.C[attr][k][1], ct.C[attr][k][2], userkey.KP},
+					[]Point{userkey.K, huser, ct.C[attr][k][3]})
+				tmp = curve.Mul(tmp, ct.C[attr][k][0])
+				tmp = curve.Pow(tmp, big.NewInt(int64(c)))
+				S0 = curve.Mul(S0, tmp)
+			}
+		}
+	}
+
+	secret = curve.Div(ct.C0, S0)
+	return
+}
+
+func Decrypt2(ct *Ciphertext, userattrs *UserAttrs) (secret Point) {
+	org := ct.Org
+	curve := org.Crv
+	huser := curve.HashToGroup(userattrs.User, "G2")
+
+	S0 := curve.UnitOnGroup("GT")
+	for attr, cs := range userattrs.Coeff2 {
+		for k, c := range cs {
+			if c != 0 {
+				userkey := userattrs.Userkey[attr]
+				tmp := curve.ProdPair(
+					[]Point{ct.C[attr][k][1], ct.C[attr][k][2], userkey.KP},
+					[]Point{userkey.K, huser, ct.C[attr][k][3]})
+				tmp = curve.Mul(tmp, ct.C[attr][k][0])
+				tmp = curve.Pow(tmp, big.NewInt(int64(c)))
+				S0 = curve.Mul(S0, tmp)
+			}
+		}
+	}
+
+	secret = curve.Div(ct.C0, S0)
+	return
+}
+
 // Json API for Decrypt
 func DecryptJson(ctJson string, userattrsJson string) string {
 	ct := NewCiphertextOfJsonStr(ctJson).OfJsonObj()
 	userattrs := NewUserAttrsOfJsonStr(userattrsJson).OfJsonObj()
 	secret := Decrypt(ct, userattrs)
+	return secret.ToJsonObj().GetP()
+}
+
+// Json API for Decrypt
+func DecryptJson1(ctJson string, userattrsJson string) string {
+	ct := NewCiphertextOfJsonStr(ctJson).OfJsonObj()
+	userattrs := NewUserAttrsOfJsonStr(userattrsJson).OfJsonObj()
+	secret := Decrypt1(ct, userattrs)
+	return secret.ToJsonObj().GetP()
+}
+
+// Json API for Decrypt
+func DecryptJson2(ctJson string, userattrsJson string) string {
+	ct := NewCiphertextOfJsonStr(ctJson).OfJsonObj()
+	userattrs := NewUserAttrsOfJsonStr(userattrsJson).OfJsonObj()
+	secret := Decrypt2(ct, userattrs)
 	return secret.ToJsonObj().GetP()
 }
 
