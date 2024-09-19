@@ -425,13 +425,13 @@ func (userattrs *UserAttrs) SelectUserAttrs(user string, policy string) *UserAtt
 			c1, c2 := computeCoefficients1(ap_)
 			for attr, rows := range row_idx {
 				for _, i_ := range rows {
-					userattrs.Coeff[attr] = append(userattrs.Coeff[attr], c[i_])
+					userattrs.Coeff[attr] = append(userattrs.Coeff[attr], c1[i_])
 					userattrs.Coeff2[attr] = append(userattrs.Coeff[attr], c2[i_])
 				}
 			}
 			log.Debug(">>> userattrs: %v", userattrs.Coeff)
 			log.Debug("user access policy %d (%d x %d matrix)", ap_, len(ap_[0]), len(ap_))
-			log.Debug("coefficients for user attributes: %d", c)
+			log.Debug("coefficients for user attributes: %d", c1)
 		} else {
 			log.Debug("user access policy empty")
 		}
