@@ -105,7 +105,53 @@ func computeCoefficients(ap [][]int) []int {
 
 	return c
 }
+func computeCoefficients1(ap [][]int) ([]int, []int) {
+	hap, u := hermiteNormalForm(ap)
+	log.Debug("HNF %d", hap)
+	log.Debug("U %d", u)
 
+	m := len(ap[0])
+	n := len(hap)
+	c1 := make([]int, n)
+	c2 := make([]int, n)
+
+	y := make([]int, n)
+	y2 := make([]int, n)
+	for i := 0; i < n; i++ {
+		y[i] = 0
+	}
+	if m >= n {
+		y[0] = 1
+	} else {
+		y[n-m] = 1
+	}
+	//2
+	for i := 0; i < n; i++ {
+		y2[i] = 0
+	}
+	if m >= n {
+		if n > 1 {
+			y2[1] = 1
+		} else {
+			y2[0] = 1
+		}
+	} else {
+		if (n-m)+1 < n {
+			y2[n-m+1] = 1
+		} else {
+			y2[n-m] = 1
+		}
+	}
+	for i := 0; i < n; i++ {
+		c1[i] = 0
+		c2[i] = 0
+		for j := 0; j < n; j++ {
+			c1[i] += u[j][i] * y[j]
+			c2[i] += u[j][i] * y2[j]
+		}
+	}
+	return c1, c2
+}
 func padWithZeros(x *[]int, tlen int) {
 	for i := 0; i < tlen-len(*x); i++ {
 		*x = append(*x, 0)
