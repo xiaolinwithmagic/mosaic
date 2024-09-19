@@ -214,6 +214,16 @@ func EncryptJson(secretJson string, policy string, authpubsJson string) string {
 	return Encode(JsonObjToStr(ct.ToJsonObj()))
 }
 
+// Json API for Encrypt
+func EncryptJson1(secretJson string, policy string, authpubsJson string) string {
+	secret := NewPointOfJsonStr(secretJson)
+	authpubs := NewAuthPubsOfJsonStr(authpubsJson).OfJsonObj()
+	org := GetOrgFromAuthPubs(authpubs)
+	secret.OfJsonObj(org.Crv)
+	ct := Encrypt1(secret, policy, authpubs)
+	return Encode(JsonObjToStr(ct.ToJsonObj()))
+}
+
 // decrypt a ciphertext
 // the function requires the list of user attributes to use
 // and the corresponding collection of userkey
