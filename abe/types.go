@@ -91,6 +91,8 @@ type Ciphertext struct {
 	Policy_ string                `json:"policy"`
 	C0      Point                 `json:"-"`
 	C0_     string                `json:"c0"`
+	C1      Point                 `json:"-"`
+	C1_     string                `json:"c0"`
 	C       map[string][][]Point  `json:"-"`
 	C_      map[string][][]string `json:"c"`
 }
@@ -113,6 +115,7 @@ type AuthPubs struct {
 type UserAttrs struct {
 	User     string              `json:"user"`  // user
 	Coeff    map[string][]int    `json:"coeff"` // attribute -> its coefficients
+	Coeff2   map[string][]int    `json:"coeff"` // attribute -> its coefficients
 	Userkey  map[string]*Userkey `json:"-"`
 	Userkey_ map[string]string   `json:"userkey"` // attribute -> corresponding userkey
 }
