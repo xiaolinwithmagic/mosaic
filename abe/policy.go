@@ -421,10 +421,12 @@ func (userattrs *UserAttrs) SelectUserAttrs(user string, policy string) *UserAtt
 		}
 
 		if len(ap_) > 0 {
-			c := computeCoefficients(ap_)
+			//c := computeCoefficients(ap_)
+			c1, c2 := computeCoefficients1(ap_)
 			for attr, rows := range row_idx {
 				for _, i_ := range rows {
 					userattrs.Coeff[attr] = append(userattrs.Coeff[attr], c[i_])
+					userattrs.Coeff2[attr] = append(userattrs.Coeff[attr], c2[i_])
 				}
 			}
 			log.Debug(">>> userattrs: %v", userattrs.Coeff)
