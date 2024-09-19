@@ -100,7 +100,7 @@ func (curve *PbcCurve) NewRandomExp() *big.Int {
 }
 
 // new random point on a group ("G1", "G2", "GT") in the bilinear pairing
-func (curve *PbcCurve) NewRandomPointOn(seed string, group string) Point {
+func (curve *PbcCurve) NewRandomPointOn(group string) Point {
 	tmp := curve.NewPointOn(group).(*PbcPoint)
 	return &PbcPoint{
 		p:     tmp.p.Rand(),
