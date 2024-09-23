@@ -135,7 +135,7 @@ func Encrypt(secret Point, policy string, authpubs *AuthPubs) (ct *Ciphertext) {
 
 	S0 := curve.Pow(org.E, s[0])
 	//S1 := curve.Pow(org.E, s[1])
-	C0 := curve.Mul(secret1, S0)
+	C0 := curve.Mul(secret, S0)
 	//C1 := curve.Mul(secret2, S1)
 
 	C := make(map[string][][]Point)
