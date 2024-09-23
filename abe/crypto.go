@@ -134,7 +134,9 @@ func Encrypt(secret Point, policy string, authpubs *AuthPubs) (ct *Ciphertext) {
 	}
 
 	S0 := curve.Pow(org.E, s[0])
-	C0 := curve.Mul(secret, S0)
+	//S1 := curve.Pow(org.E, s[1])
+	C0 := curve.Mul(secret1, S0)
+	//C1 := curve.Mul(secret2, S1)
 
 	C := make(map[string][][]Point)
 	for attr, rows := range ap.Row {
@@ -160,7 +162,7 @@ func Encrypt(secret Point, policy string, authpubs *AuthPubs) (ct *Ciphertext) {
 }
 
 // this is a test
-func Encrypt1(secret Point, policy string, authpubs *AuthPubs) (ct *Ciphertext) {
+func Encrypt1(secret Point, secret2 Point, policy string, authpubs *AuthPubs) (ct *Ciphertext) {
 	org := GetOrgFromAuthPubs(authpubs)
 	curve := org.Crv
 
@@ -179,6 +181,9 @@ func Encrypt1(secret Point, policy string, authpubs *AuthPubs) (ct *Ciphertext) 
 
 	S0 := curve.Pow(org.E, s[0])
 	C0 := curve.Mul(secret, S0)
+	
+	S1 := curve.Pow(org.E, s[1])
+	C1 := curve.Mul(secret2, S1)
 
 	C := make(map[string][][]Point)
 	for attr, rows := range ap.Row {
@@ -200,7 +205,7 @@ func Encrypt1(secret Point, policy string, authpubs *AuthPubs) (ct *Ciphertext) 
 	}
 
 	ct = &Ciphertext{
-		Org: org, Policy: policy, C0: C0, C: C}
+		Org: org, Policy: policy, C0: C0, C1: C1, C: C}
 	return
 }
 
@@ -215,12 +220,13 @@ func EncryptJson(secretJson string, policy string, authpubsJson string) string {
 }
 
 // Json API for Encrypt
-func EncryptJson1(secretJson string, policy string, authpubsJson string) string {
+func EncryptJson1(secretJson string, secretJson1 string, policy string, authpubsJson string) string {
 	secret := NewPointOfJsonStr(secretJson)
+	secret1 := NewPointOfJsonStr(secretJson1)
 	authpubs := NewAuthPubsOfJsonStr(authpubsJson).OfJsonObj()
 	org := GetOrgFromAuthPubs(authpubs)
 	secret.OfJsonObj(org.Crv)
-	ct := Encrypt1(secret, policy, authpubs)
+	ct := Encrypt1(secret, secret1, policy, authpubs)
 	return Encode(JsonObjToStr(ct.ToJsonObj()))
 }
 
